@@ -1,0 +1,166 @@
+import random
+from typing import List, Optional
+
+class CardDeck:
+    def __init__(self, cards: List[str] = None):
+        self.possible_cards = ['A1', 'A2', 'A3', 'B1', 'B2', 'B3', 'N']
+        self.deck = cards
+        self.drawn_cards = []
+    
+    def draw_card(self) -> Optional[str]:
+        if not self.deck:
+            return None
+        
+        while True:
+            card = random.choice(self.deck)
+            if card in ['A1', 'A2', 'A3', 'B1', 'B2', 'B3'] and self.drawn_cards.count(card) >= 3:
+                continue
+            self.deck.remove(card)
+            self.drawn_cards.append(card)
+            return card
+    
+    def return_card(self, card: str) -> bool:
+        self.drawn_cards.remove(card)
+        self.deck.append(card)
+
+    def sell_card(self, card: str, gold: int) -> int:
+        if card in self.drawn_cards:
+            self.drawn_cards.remove(card)
+            self.deck.append(card)
+            gold += 4
+        return gold
+
+# Example usage
+if __name__ == "__main__":
+    results = []
+
+    for _ in range(5000):  # Change to 5000 trials
+        deck_four = CardDeck(['A1'] * 10 + ['A2'] * 10 + ['A3'] * 10 + ['B1'] * 10 + ['B2'] * 10 + ['B3'] * 10 + ['N'] * 60)
+        deck_five = CardDeck(["Y1"] * 9 + ["Y2"] * 9 + ["Y3"] * 9 + ["N"] * 45)
+        cards_seen = 0
+        a_triplets = 0
+        b_triplets = 0
+        y_triplets = 0
+        gold = 1000
+
+        while not ((a_triplets >= 2 and b_triplets >= 1) or 
+                   (a_triplets >= 1 and b_triplets >= 2) or 
+                   (a_triplets >= 1 and b_triplets >= 1 and len(deck_five.drawn_cards) > 0) or
+                   (gold <= 0.4 and all("Triplet" in card for card in deck_four.drawn_cards))):
+            
+            gold = gold - 0.4
+            while gold < 4:
+                card_counts = {card: deck_four.drawn_cards.count(card) for card in ['A1', 'A2', 'A3', 'B1', 'B2', 'B3']}
+                card_counts = {card: count for card, count in card_counts.items() if count > 0}
+                
+                if not card_counts:
+                    break
+                min_card = min(card_counts, key=card_counts.get)
+                gold = deck_four.sell_card(min_card, gold)
+        
+            for _ in range(1):
+                random_integer = random.randint(1, 4)
+                if random_integer == 1:
+                    random_integer2 = random.randint(1, 25)
+                    if random_integer2 == 1 or random_integer2 == 2 or random_integer2 == 3:
+                        if len(deck_five.drawn_cards) < 1:
+                            if gold >= 5:
+                                card = deck_five.draw_card()
+                                if card == 'N':
+                                    deck_five.return_card(card)
+                                else:
+                                    gold = gold - 5
+                    else:
+                        if gold >= 4:
+                            card = deck_four.draw_card()
+                            if card == 'N':
+                                deck_four.return_card(card)
+                            else:
+                                gold = gold - 4
+                else:
+                    pass
+            cards_seen = cards_seen + 1
+
+            for card in ['A1', 'A2', 'A3']:
+                if deck_four.drawn_cards.count(card) >= 3:
+                    a_triplets += 1
+                    deck_four.deck = [c for c in deck_four.deck if c != card]
+                    deck_four.deck.extend(['N'] * 7)
+                    for _ in range(3):
+                        deck_four.drawn_cards.remove(card)
+                    deck_four.drawn_cards.append(f'{card} Triplet')
+
+            for card in ['B1', 'B2', 'B3']:
+                if deck_four.drawn_cards.count(card) >= 3:
+                    b_triplets += 1
+                    deck_four.deck = [c for c in deck_four.deck if c != card]
+                    deck_four.deck.extend(['N'] * 7)
+                    for _ in range(3):
+                        deck_four.drawn_cards.remove(card)
+                    deck_four.drawn_cards.append(f'{card} Triplet')
+
+            if len(deck_five.drawn_cards) > 0:
+                if a_triplets >= 1:
+                    a_cards = [card for card in deck_four.drawn_cards if card in ['A1', 'A2', 'A3']]
+                    for card in a_cards:
+                        gold = deck_four.sell_card(card, gold)
+                    deck_four.deck = ['N' if card in ['A1', 'A2', 'A3'] else card for card in deck_four.deck]
+
+                if b_triplets >= 1:
+                    b_cards = [card for card in deck_four.drawn_cards if card in ['B1', 'B2', 'B3']]
+                    for card in b_cards:
+                        gold = deck_four.sell_card(card, gold)
+                    deck_four.deck = ['N' if card in ['B1', 'B2', 'B3'] else card for card in deck_four.deck]
+            else:
+                if a_triplets >= 2:
+                    a_cards = [card for card in deck_four.drawn_cards if card in ['A1', 'A2', 'A3']]
+                    for card in a_cards:
+                        gold = deck_four.sell_card(card, gold)
+                    deck_four.deck = ['N' if card in ['A1', 'A2', 'A3'] else card for card in deck_four.deck]
+
+                if b_triplets >= 2:
+                    b_cards = [card for card in deck_four.drawn_cards if card in ['B1', 'B2', 'B3']]
+                    for card in b_cards:
+                        gold = deck_four.sell_card(card, gold)
+                    deck_four.deck = ['N' if card in ['B1', 'B2', 'B3'] else card for card in deck_four.deck]
+
+        if a_triplets >= 2 and b_triplets >= 1:
+            stop_condition = "A"
+        elif a_triplets >= 1 and b_triplets >= 2:
+            stop_condition = "B"
+        elif a_triplets >= 1 and b_triplets >= 1 and len(deck_five.drawn_cards) > 0:
+            stop_condition = "Y"
+        else:
+            stop_condition = "Error"
+
+        results.append((cards_seen, stop_condition))
+
+    # Calculate frequency
+    frequency = {}
+    stop_condition_totals = {"A": 0, "B": 0, "Y": 0, "Error": 0}
+    stop_condition_counts = {"A": 0, "B": 0, "Y": 0, "Error": 0}
+    
+    for result in results:
+        if result[0] in frequency:
+            frequency[result[0]] += 1
+        else:
+            frequency[result[0]] = 1
+        stop_condition_totals[result[1]] += result[0]
+        stop_condition_counts[result[1]] += 1
+
+    # Calculate average cards seen for each stop condition
+    average_cards_seen = {key: stop_condition_totals[key] / stop_condition_counts[key] if stop_condition_counts[key] > 0 else 0 for key in stop_condition_totals}
+
+    # Print results in CSV format
+    print("Frequency,Cards Seen")
+    for key in sorted(frequency):
+        for result in results:
+            if result[0] == key:
+                print(f"{frequency[key]/5000},{result[0]}")
+
+    # Print average cards seen for each stop condition
+    print("\nAverage Cards Seen for Each Stop Condition")
+    for key in average_cards_seen:
+        print(f"{key},{average_cards_seen[key]}")
+
+
